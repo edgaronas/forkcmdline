@@ -16,13 +16,15 @@ from input or file.
 
 =head2 Dependencies
 
-Perl standard modules: C<strict>, C<warnings> (with C<FATAL> warnings).
+C<strict>, C<warnings> (with C<FATAL> warnings) - Perl standard modules.
 
-C<Parallel::ForkManager> - for Perl fork managing.
+C<Parallel::ForkManager> - Perl fork managing.
 
-C<Time::HiRes> - for precise elapsed time.
+C<Time::HiRes> - precise elapsed time.
 
-C<Getopt::Long> - for handling command line options.
+C<Getopt::Long> - command line options handling.
+
+C<Pod::PlainText> - POD text extraction for help.
 
 =cut
 
@@ -31,6 +33,7 @@ use warnings 'FATAL' => 'all';
 use Parallel::ForkManager ();
 use Time::HiRes ();
 use Getopt::Long ();
+use Pod::PlainText ();
 
 $|=1;
 
@@ -93,10 +96,12 @@ Getopt::Long::GetOptions(
     'writestderr|e=s'   =>  \$writestderr,
     'forks|f=i'         =>  \$forks,
     'help|h'            =>  sub { 
-                                system("perldoc $0") == 0 or 
-                                    die("ERROR: failed to run 'perldoc' on file '$0' for help: $?, $!\n");
-                                exit;
-                            },
+        my $parser = Pod::PlainText->new();
+        open(my $helpfh, '<', $0) or die("ERROR: failed to open '$0' for reading help POD parts: $?, $!\n"); 
+        $parser->parse_from_filehandle($helpfh);
+        close($helpfh);
+        exit;
+    },
     'writestdout|o=s'   =>  \$writestdout,
     'quiet|q'           =>  \$quiet,
     'read|r'            =>  \$read,

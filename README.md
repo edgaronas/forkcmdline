@@ -12,13 +12,15 @@ from input or file.
 
 ## Dependencies
 
-Perl standard modules: `strict`, `warnings` (with `FATAL` warnings).
+`strict`, `warnings` (with `FATAL` warnings) - Perl standard modules.
 
-`Parallel::ForkManager` - for Perl fork managing.
+`Parallel::ForkManager` - Perl fork managing.
 
-`Time::HiRes` - for precise elapsed time.
+`Time::HiRes` - precise elapsed time.
 
-`Getopt::Long` - for handling command line options.
+`Getopt::Long` - command line options handling.
+
+`Pod::PlainText` - POD text extraction for help.
 
 ## Options
 
