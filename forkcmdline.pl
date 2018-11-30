@@ -129,14 +129,16 @@ if($read){
                 push @CMDS, $row;
             }
             else {
-                warn('WARNING: '.ordinal_suffix($rownum).' row is empty or space only in: '.
-                    $argv."\n") unless($quiet);
+                warn("WARNING: row #$rownum is empty or space only in: $argv\n") unless($quiet);
             }
         }
+        close($fh);
+        print('INFO: found '.($#CMDS+1)." cmdline in file: $argv\n") unless($quiet);
     }
 }
 else {
     @CMDS=@ARGV;
+    print('INFO: found '.($#CMDS+1)." cmdline from input arguments\n") unless($quiet);
 }
 
 =head2 Getting fork number
@@ -162,6 +164,7 @@ if($forks == 1){
     $forks = 4;
     if($ENV{'NUMBER_OF_PROCESSORS'}){
         $forks = $ENV{'NUMBER_OF_PROCESSORS'};
+        print("INFO: got initial $forks forks from OS '$^O' environmental variable: NUMBER_OF_PROCESSORS\n") unless($quiet);
     }
     else {
         my $nproc;
@@ -169,6 +172,7 @@ if($forks == 1){
         if(defined $nproc){
             $nproc=~s/\s+$//gs;
             $forks = $nproc;
+            print("INFO: got initial $forks forks from OS '$^O' utility: nproc\n") unless($quiet);
         }
         else {
             warn("WARNING: failed to run nproc utility in current OS: $^O\n".
@@ -176,9 +180,16 @@ if($forks == 1){
         }
     }
     $forks*=2;
+    print("INFO: final (multiplied by 2) forks number: $forks\n") unless($quiet);
+}
+else {
+    print("INFO: fixed forks number: $forks\n") unless($quiet);
 }
 
-$forks = $#CMDS+1 if($#CMDS<$forks);
+if($#CMDS<$forks){
+    $forks = $#CMDS+1;
+    warn("WARNING: reducing forks number to match number of cmdlines: $forks\n") unless($quiet);
+}
 if($#CMDS==0){
     warn("WARNING: no forking, only one element found...\n") unless($quiet);
     $forks = 0;
@@ -191,16 +202,16 @@ unless($forks == 0){
     $pm->run_on_finish(
         sub {
             my ($pid, $exitcode, $procid, $exitsignal, $coredump, $datastructref) = @_;
+            my $c = $procid-1;
             if(defined $$datastructref){
                 write_exit($procid, $$datastructref) if($writeexit ne '');
                 check_exit($procid, $$datastructref) if($checkexit ne '');
             }
             else {
-                die("ERROR: failed to get exit code ref for writing after ".
-                    ordinal_suffix($procid).' cmdline: '.$CMDS[$procid-1]."\n") if($writeexit ne '');
+                die("ERROR: failed to get exit code ref for writing after cmdline #$procid: $CMDS[$c]\n") if($writeexit ne '');
                 check_exit($procid, $exitcode) if($checkexit ne '');
             }
-            die('ERROR: core dump for proc (pid=$pid) after '.ordinal_suffix($procid).' cmdline: '.$CMDS[$procid-1]."\n") if($coredump);
+            die("ERROR: core dump for proc (pid=$pid) after cmdline #$procid: $CMDS[$c]\n") if($coredump);
         }
     );
 }
@@ -208,7 +219,7 @@ unless($forks == 0){
 my $start_time;
 unless($quiet){
     $start_time=[Time::HiRes::gettimeofday()];
-    print("PARALLEL FORKS $forks FOR CMDLINES ".($#CMDS+1).'..');
+    print("PARALLEL FORKS $forks FOR CMDLINES ".($#CMDS+1).'..') unless($quiet);
 }
 
 DATA_LOOP:
@@ -262,7 +273,7 @@ sub check_exit {
             last;
         }
     }
-    die('ERROR: '.ordinal_suffix($procid)." cmdline '".$CMDS[$procid-1]."' exited with $exit, ".
+    die("ERROR: cmdline #$procid '".$CMDS[$procid-1]."' exited with '$exit', ".
         "though expected: ".join(' or ', @CHK)."\n") unless($eok);
 }
 sub write_exit {
@@ -272,22 +283,6 @@ sub write_exit {
         die("ERROR: failed to open file '$writeexit.exit.$procid' for writing: $?, $!\n");
     print $fh $exit;
     close($fh);
-}
-
-sub ordinal_suffix {
-    my $number=shift(@_);
-    if($number =~ /(?<!1)1$/){
-        return $number.'st';
-    } 
-    elsif($number =~ /(?<!1)2$/){
-        return $number.'nd';
-    }
-    elsif($number =~ /(?<!1)3$/){
-        return $number.'rd';
-    }
-    else {
-        return $number.'th';
-    }
 }
 
 =pod
@@ -314,7 +309,7 @@ The MIT License. More info: L<https://opensource.org/licenses/MIT>.
 
 Edgaras Sakuras - L<edgaronas@yahoo.com|mailto:edgaronas@yahoo.com>
 
-2018-11-29
+2018-11-30
 
 =cut
 
